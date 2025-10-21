@@ -52,6 +52,9 @@ return view.extend({
         o = s.taboption('proxy', form.Flag, 'ipv6_dns_hijack', _('IPv6 DNS Hijack'));
         o.rmempty = false;
 
+        o = s.taboption('proxy', form.Flag, 'dns_hijack_skip_remote', _('Only hijack incoming DNS'));
+        o.rmempty = false;
+
         o = s.taboption('proxy', form.Flag, 'ipv4_proxy', _('IPv4 Proxy'));
         o.rmempty = false;
 
