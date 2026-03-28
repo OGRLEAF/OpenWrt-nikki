@@ -53,7 +53,7 @@ return view.extend({
         o.rmempty = false;
 
         o = s.taboption('proxy', form.ListValue, 'dns_hijack_target_mode', _('DNS Target Mode'));
-        o.value('exclude', _('Disable'));
+        o.value('disable', _('Disable'));
         o.value('exclude', _('Exclude'));
         o.value('include', _('Include'));
         o.default = 'exclude';
