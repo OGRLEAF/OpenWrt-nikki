@@ -109,6 +109,9 @@
 		push(lan_access_control, access_control);
 	});
 
+	const dns_hijack_target_mode = uci.get('nikki', 'proxy', 'dns_hijack_target_mode') ?? 'exclude';
+	const dns_hijack_target_dns = uci_array(uci.get('nikki', 'proxy', 'dns_hijack_target_dns'));
+
 	const reserved_ip = uci_array(uci.get('nikki', 'proxy', 'reserved_ip'));
 	const reserved_ip6 = uci_array(uci.get('nikki', 'proxy', 'reserved_ip6'));
 	const bypass_dscp = uci_array(uci.get('nikki', 'proxy', 'bypass_dscp'));
@@ -250,6 +253,17 @@ table inet nikki {
 		{% endif %}
 	}
 
+	{% if (length(dns_hijack_target_dns) > 0): %}
+	set dns_hijack_target_dns {
+		type ipv4_addr
+		flags interval
+		auto-merge
+		elements = {
+			{{ join(', ', dns_hijack_target_dns) }}
+		}
+	}
+	{% endif %}
+
 	{% if (router_proxy): %}
 	{% if (length(dns_hijack_nfproto) > 0): %}
 	chain router_dns_hijack {
@@ -366,7 +380,15 @@ table inet nikki {
 
 	{% if (lan_proxy): %}
 	{% if (length(dns_hijack_nfproto) > 0): %}
-	chain lan_dns_hijack {
+	chain lan_dns_hijack {		
+		{% if (length(dns_hijack_target_dns) > 0): %}
+		{% if (dns_hijack_target_mode == 'exclude'): %}
+		meta l4proto { tcp, udp } th dport 53 ip daddr @dns_hijack_target_dns counter return
+		{% elif (dns_hijack_target_mode == 'include'): %}
+		meta l4proto { tcp, udp } th dport 53 ip daddr != @dns_hijack_target_dns counter return
+		{% endif %}
+		{% endif %}
+
 		{% for (let access_control in lan_access_control): %}
 		{% if (access_control['enabled']): %}
 		{% if (length(access_control['ip']) == 0 && length(access_control['ip6']) == 0 && length(access_control['mac']) == 0): %}
@@ -393,6 +415,7 @@ table inet nikki {
 
 	{% if (tcp_mode == 'redirect'): %}
 	chain lan_redirect {
+
 		{% for (let access_control in lan_access_control): %}
 		{% if (access_control['enabled']): %}
 		{% if (length(access_control['ip']) == 0 && length(access_control['ip6']) == 0 && length(access_control['mac']) == 0): %}
@@ -597,9 +620,17 @@ table inet nikki {
 		meta nfproto ipv6 meta l4proto . th dport != @proxy_dport {% if (fake_ip6_range): %} ip6 daddr != {{ fake_ip6_range }} {% endif %} counter return
 		meta l4proto { tcp, udp } ip dscp @bypass_dscp {% if (fake_ip_range): %} ip daddr != {{ fake_ip_range }} {% endif %} counter return
 		meta l4proto { tcp, udp } ip6 dscp @bypass_dscp {% if (fake_ip6_range): %} ip6 daddr != {{ fake_ip6_range }} {% endif %} counter return
+
+		{% if (length(dns_hijack_target_dns) > 0): %}
+		{% if (dns_hijack_target_mode == 'exclude'): %}
+		meta nfproto @dns_hijack_nfproto meta l4proto { tcp, udp } th dport 53 ip daddr @dns_hijack_target_dns counter jump lan_tproxy
+		{% endif %}
+		{% endif %}
+
 		{% for (let fwmark in bypass_fwmark): %}
 		meta mark & {{ fwmark.mask }} == {{ fwmark.mark }} counter return
 		{% endfor %}
+
 		{% if (length(dns_hijack_nfproto) > 0): %}
 		meta nfproto @dns_hijack_nfproto meta l4proto { tcp, udp } th dport 53 counter return
 		{% endif %}

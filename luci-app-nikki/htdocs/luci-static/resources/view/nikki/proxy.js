@@ -52,6 +52,18 @@ return view.extend({
         o = s.taboption('proxy', form.Flag, 'ipv6_dns_hijack', _('IPv6 DNS Hijack'));
         o.rmempty = false;
 
+        o = s.taboption('proxy', form.ListValue, 'dns_hijack_target_mode', _('DNS Target Mode'));
+        o.value('exclude', _('Exclude'));
+        o.value('include', _('Include'));
+        o.default = 'exclude';
+        o.rmempty = false;
+        o.description = _('Exclude: DNS to target addresses goes to proxy; Include: Only DNS to target addresses gets hijacked');
+
+        o = s.taboption('proxy', form.DynamicList, 'dns_hijack_target_dns', _('DNS Target Addresses'));
+        o.datatype = 'ipaddr';
+        o.placeholder = '8.8.8.8';
+        o.description = _('List of DNS server addresses to filter');
+
         o = s.taboption('proxy', form.Flag, 'ipv4_proxy', _('IPv4 Proxy'));
         o.rmempty = false;
 
