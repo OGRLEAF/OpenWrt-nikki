@@ -624,6 +624,8 @@ table inet nikki {
 		{% if (length(dns_hijack_target_dns) > 0): %}
 		{% if (dns_hijack_target_mode == 'exclude'): %}
 		meta nfproto @dns_hijack_nfproto meta l4proto { tcp, udp } th dport 53 ip daddr @dns_hijack_target_dns counter jump lan_tproxy
+		{% elif (dns_hijack_target_mode == 'include'): %}
+		meta nfproto @dns_hijack_nfproto meta l4proto { tcp, udp } th dport 53 ip daddr != @dns_hijack_target_dns counter jump lan_tproxy
 		{% endif %}
 		{% endif %}
 
